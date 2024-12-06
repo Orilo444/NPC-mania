@@ -8,7 +8,7 @@ public:
     sf::Vector2f direction;
 
     Bullet(sf::Vector2f startPosition, sf::Vector2f moveDirection) {
-        shape.setSize(sf::Vector2f(25, 10));  // Set the bullet size
+        shape.setSize(sf::Vector2f(15, 10));  // Set the bullet size
         shape.setPosition(startPosition);  
         shape.setFillColor(sf::Color::Red);
         direction = moveDirection;  // Set the bullet's movement direction
@@ -21,8 +21,8 @@ public:
 };
 
 int main() {
-    int playerXIndex = 0;
 
+    srand(static_cast<unsigned>(time(0)));
     //---------------------update---------------------------
 
     sf::ContextSettings settings;
@@ -37,7 +37,7 @@ int main() {
     sf::Texture enemyTexture;
     sf::Sprite enemySprite;
 
-    if (enemyTexture.loadFromFile("assets/skelton/textures/spritesheet.png")) {
+    if (enemyTexture.loadFromFile("C:/visual studio pojects/rpg game/rpg game/assets/skelton/textures/spritesheet.png")) {
         std::cout << "Enemy image loaded\n";
         enemySprite.setTexture(enemyTexture);
         enemySprite.setPosition(sf::Vector2f(400, 100));
@@ -61,7 +61,7 @@ int main() {
     sf::Texture playerTexture;
     sf::Sprite playerSprite;
 
-    if (playerTexture.loadFromFile("assets/player/textures/spritesheet.png")) {
+    if (playerTexture.loadFromFile("C:/visual studio pojects/rpg game/rpg game/assets/skelton/textures/spritesheet.png")) {
         std::cout << "player image loaded\n";
         playerSprite.setTexture(playerTexture);
 
@@ -76,6 +76,11 @@ int main() {
     else {
         std::cout << "player image failed to load\n";
     }
+
+
+
+
+
     // *****************calculatendirection of bullet*******
 
     int frameIndex = 0;                     // Current animation frame
@@ -83,8 +88,18 @@ int main() {
     sf::Clock animationClock;               // Clock to control animation timing
     const float frameDuration = 0.15f;      // Time in seconds per frame
 
-    std::vector<Bullet> bullets;
+    //******************explosion effect***************
+    sf::CircleShape explosion(30.f);
+    explosion.setFillColor(sf::Color::Transparent);
+    explosion.setOutlineColor(sf::Color::Yellow);
+    explosion.setOutlineThickness(5.f);
+    bool showExplosion = false;
+    sf::Clock explosionClock;
 
+
+    //**************************8bullts*****************
+    std::vector<Bullet> bullets;
+    //*********************loop**********************
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -92,8 +107,10 @@ int main() {
                 window.close();
         }
 
-        bool isMoving = false;  // Check if the player is moving
 
+
+        bool isMoving = false;  // Check if the player is moving
+        //****************player movements************************
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             sf::Vector2f position = playerSprite.getPosition();
             playerSprite.setPosition(position + sf::Vector2f(5, 0));
@@ -158,14 +175,47 @@ int main() {
         // Update bullets' positions
         for (auto& bullet : bullets) {
             bullet.update();
+
         }
 
+        //*************collision detection and enemy respawn***************
+        for (auto it = bullets.begin(); it != bullets.end();) {
+            if (it->shape.getGlobalBounds().intersects(enemySprite.getGlobalBounds())) {
+                // Start explosion
+                explosion.setPosition(enemySprite.getPosition());
+                showExplosion = true;
+                explosionClock.restart();
+
+                // Respawn enemy
+                float newX = static_cast<float>(std::rand() % (1600 - static_cast<int>(enemySprite.getGlobalBounds().width)));
+                float newY = static_cast<float>(std::rand() % (900 - static_cast<int>(enemySprite.getGlobalBounds().height)));
+                enemySprite.setPosition(newX, newY);
+
+                // Remove bullet
+                it = bullets.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+
+
+
+        // Explosion duration
+        if (showExplosion && explosionClock.getElapsedTime().asSeconds() > 0.5f) {
+            showExplosion = false;
+        }
+
+        //**************************rendering*************************
         window.clear(sf::Color::Black);
         window.draw(enemySprite);
         window.draw(playerSprite);
 
         for (const auto& bullet : bullets) {
             window.draw(bullet.shape);
+        }
+        if (showExplosion) {
+            window.draw(explosion);
         }
 
         window.display();
